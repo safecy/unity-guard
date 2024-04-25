@@ -1,0 +1,21 @@
+{
+  "name": "com.safecy.unity-guard",
+  "version": "1.0.1",
+  "displayName": "Unity Guard - Safecy",
+  "description": "A Unity package that scans for malicious assets and scripts.",
+  "unity": "2019.4",
+  "documentationUrl": "https://github.com/safecy/unity-guard/blob/main/README.md",
+  "changelogUrl": "https://github.com/safecy/unity-guard",
+  "licensesUrl": "https://github.com/safecy/unity-guard/blob/main/LICENSE",
+  "keywords": [
+    "security",
+    "malware",
+    "unity-guard",
+    "asset-scanner"
+  ],
+  "author": {
+    "name": "Safecy",
+    "email": "pyyupsk@proton.me",
+    "url": "https://github.com/safecy"
+  }
+}
