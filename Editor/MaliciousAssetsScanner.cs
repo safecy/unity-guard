@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using System.IO;
 using System.Linq;
 using UnityEngine;
@@ -12,6 +13,8 @@ namespace UnityGuard
         private static readonly string[] DangerousPatterns = { "System.IO", "System.Net", "System.Reflection" };
         private const string DataPath = "Packages/com.safecy.unity-guard/Resources/data.csv";
 
+        private static Dictionary<string, string> fileCache = new Dictionary<string, string>();
+
         private static void OnPostprocessAllAssets(string[] importedAssets, string[] deletedAssets, string[] movedAssets, string[] movedFromAssetPaths)
         {
             try
@@ -22,14 +25,19 @@ namespace UnityGuard
 
                 foreach (var maliciousAsset in maliciousAssets)
                 {
-                    Debug.LogError($"Malicious asset detected: {maliciousAsset}");
-                    AssetDatabase.DeleteAsset(maliciousAsset);
+                    LogAndDeleteAsset(maliciousAsset);
                 }
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error during asset postprocessing: {ex.Message}");
+                LogException(ex, "Error during asset postprocessing");
             }
+        }
+
+        private static void LogAndDeleteAsset(string assetPath)
+        {
+            Debug.LogError($"Malicious asset detected: {assetPath}");
+            AssetDatabase.DeleteAsset(assetPath);
         }
 
         private static bool IsMaliciousAsset(string assetPath)
@@ -53,13 +61,7 @@ namespace UnityGuard
                 return true;
             }
 
-            if (fileExtension == ".cs" && new FileInfo(assetPath).Length > 1024 * 1024)
-            {
-                Debug.LogWarning($"Unusually large script file: {assetPath}");
-                return true;
-            }
-
-            if (fileExtension == ".cs" && ContainsDangerousPatterns(assetPath))
+            if (fileExtension == ".cs" && (ContainsDangerousPatterns(assetPath) || IsLargeScript(assetPath)))
             {
                 return true;
             }
@@ -77,17 +79,22 @@ namespace UnityGuard
             return false;
         }
 
+        private static bool IsLargeScript(string assetPath)
+        {
+            return new FileInfo(assetPath).Length > 1024 * 1024;
+        }
+
         private static bool ContainsDangerousPatterns(string scriptPath)
         {
             try
             {
-                var scriptContent = File.ReadAllText(scriptPath);
+                var scriptContent = GetFileContent(scriptPath);
 
                 return DangerousPatterns.Any(pattern => scriptContent.Contains(pattern));
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error reading script content: {ex.Message}");
+                LogException(ex, "Error reading script content");
                 return true;
             }
         }
@@ -122,7 +129,7 @@ namespace UnityGuard
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error analyzing scripts in asset: {ex.Message}");
+                LogException(ex, "Unexpected error during script analysis");
                 return true;
             }
 
@@ -133,15 +140,40 @@ namespace UnityGuard
         {
             try
             {
-                var dataLines = File.ReadAllLines(DataPath);
+                var dataLines = GetFileContent(DataPath).Split('\n');
 
-                return dataLines.Any(line => assetPath.Contains(line));
+                return dataLines.Any(line => assetPath.Contains(line.Trim()));
             }
             catch (Exception ex)
             {
-                Debug.LogError($"Error reading data.csv: {ex.Message}");
+                LogException(ex, "Error while reading data.csv");
                 return true;
             }
+        }
+
+        private static string GetFileContent(string filePath)
+        {
+            if (fileCache.ContainsKey(filePath))
+            {
+                return fileCache[filePath];
+            }
+
+            try
+            {
+                var content = File.ReadAllText(filePath);
+                fileCache[filePath] = content;
+                return content;
+            }
+            catch (Exception ex)
+            {
+                LogException(ex, $"Error reading file content: {filePath}");
+                return null;
+            }
+        }
+
+        private static void LogException(Exception ex, string context)
+        {
+            Debug.LogError($"{context}: {ex.Message}");
         }
     }
 }
