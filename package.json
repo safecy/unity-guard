@@ -1,6 +1,6 @@
 {
   "name": "com.safecy.unity-guard",
-  "version": "1.0.1",
+  "version": "1.1.1",
   "displayName": "Unity Guard - Safecy",
   "description": "A Unity package that scans for malicious assets and scripts.",
   "unity": "2019.4",
